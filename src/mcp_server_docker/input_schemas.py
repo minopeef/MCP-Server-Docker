@@ -108,6 +108,10 @@ class CreateContainerInput(JSONParsingModel):
         description="Container labels, either as a dictionary or a list of key=value strings",
     )
     auto_remove: bool = Field(False, description="Automatically remove the container")
+    restart_policy: dict[str, str | int] | None = Field(
+        None,
+        description="Restart policy, e.g. {\"Name\": \"unless-stopped\"} or {\"Name\": \"on-failure\", \"MaximumRetryCount\": 5}",
+    )
 
 
 class RecreateContainerInput(CreateContainerInput):
@@ -170,14 +174,14 @@ class RemoveImageInput(JSONParsingModel):
     force: bool = Field(False, description="Force remove the image")
 
 
-class ListNetworksFilter(JSONParsingModel):
+class ListNetworksFilters(JSONParsingModel):
     label: list[str] | None = Field(
         None, description="Filter by label, either `key` or `key=value` format"
     )
 
 
 class ListNetworksInput(JSONParsingModel):
-    filters: ListNetworksFilter | None = Field(None, description="Filter networks")
+    filters: ListNetworksFilters | None = Field(None, description="Filter networks")
 
 
 class CreateNetworkInput(JSONParsingModel):
@@ -191,8 +195,17 @@ class RemoveNetworkInput(JSONParsingModel):
     network_id: str = Field(..., description="Network ID or name")
 
 
+class ListVolumesFilters(JSONParsingModel):
+    name: list[str] | None = Field(
+        None, description="Filter by volume name"
+    )
+    label: list[str] | None = Field(
+        None, description="Filter by label, either `key` or `key=value` format"
+    )
+
+
 class ListVolumesInput(JSONParsingModel):
-    pass
+    filters: ListVolumesFilters | None = Field(None, description="Filter volumes")
 
 
 class CreateVolumeInput(JSONParsingModel):
@@ -207,5 +220,5 @@ class RemoveVolumeInput(JSONParsingModel):
 
 
 class DockerComposePromptInput(BaseModel):
-    name: str
-    containers: str
+    name: str = Field(..., description="Unique project name")
+    containers: str = Field(..., description="Natural language description of desired containers")

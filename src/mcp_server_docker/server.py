@@ -450,8 +450,9 @@ async def call_tool(
             result = docker_to_dict(network)
 
         elif name == "list_volumes":
-            ListVolumesInput(**arguments)  # Validate empty input
-            volumes = _docker.volumes.list()
+            args = ListVolumesInput(**arguments)
+            filters = args.filters.model_dump(exclude_none=True) if args.filters else None
+            volumes = _docker.volumes.list(filters=filters)
             result = [docker_to_dict(v) for v in volumes]
 
         elif name == "create_volume":
