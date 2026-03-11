@@ -1,7 +1,9 @@
+"""MCP server for managing Docker with natural language."""
+
 import json
+import traceback
 from collections.abc import Sequence
 from typing import Any
-import traceback
 
 import docker
 import mcp.types as types
@@ -163,7 +165,7 @@ database, create the database first, and abort the apply if dependency creation 
 destruction should occur in the reverse dependency order, and be aborted if destroying a particular resource fails.
 
 Plans should only create, update, or destroy resources in the project. Relatedly, "recreate" should
-be used to indicate a destroy followed by a create; always prefer udpating a resource when possible,
+be used to indicate a destroy followed by a create; always prefer updating a resource when possible,
 only recreating it if required (e.g. for immutable resources like containers).
 
 If the project already exists (as indicated by the presence of resources above) and your plan would
@@ -175,7 +177,7 @@ the user that they must explicitly include "apply" in the message. Only
 apply a plan if it is contained in your latest message, otherwise ask the user to provide
 their desires for the new plan.
 
-IMPORTANT: maintain brevvity throughout your responses, unless instructed to be verbose.
+IMPORTANT: maintain brevity throughout your responses, unless instructed to be verbose.
 
 The following are guidelines for you to follow when interacting with Docker Tools:
 
@@ -227,7 +229,7 @@ async def read_resource(uri: AnyUrl) -> str:
     container = _docker.containers.get(container_id)
 
     if resource_type == "logs":
-        logs = container.logs(tail=100).decode("utf-8")
+        logs = container.logs(tail=100).decode("utf-8", errors="replace")
         return json.dumps(logs.split("\n"))
 
     elif resource_type == "stats":
@@ -351,7 +353,10 @@ async def call_tool(
     try:
         if name == "list_containers":
             args = ListContainersInput(**arguments)
-            containers = _docker.containers.list(**args.model_dump())
+            dump = args.model_dump()
+            if dump.get("filters") is not None:
+                dump["filters"] = args.filters.model_dump(exclude_none=True)
+            containers = _docker.containers.list(**dump)
             result = [docker_to_dict(c) for c in containers]
 
         elif name == "create_container":
@@ -401,8 +406,10 @@ async def call_tool(
 
         elif name == "list_images":
             args = ListImagesInput(**arguments)
-
-            images = _docker.images.list(**args.model_dump())
+            dump = args.model_dump()
+            if dump.get("filters") is not None:
+                dump["filters"] = args.filters.model_dump(exclude_none=True)
+            images = _docker.images.list(**dump)
             result = [docker_to_dict(img) for img in images]
 
         elif name == "pull_image":
@@ -435,7 +442,10 @@ async def call_tool(
 
         elif name == "list_networks":
             args = ListNetworksInput(**arguments)
-            networks = _docker.networks.list(**args.model_dump())
+            dump = args.model_dump()
+            if dump.get("filters") is not None:
+                dump["filters"] = args.filters.model_dump(exclude_none=True)
+            networks = _docker.networks.list(**dump)
             result = [docker_to_dict(net) for net in networks]
 
         elif name == "create_network":
@@ -446,8 +456,9 @@ async def call_tool(
         elif name == "remove_network":
             args = RemoveNetworkInput(**arguments)
             network = _docker.networks.get(args.network_id)
-            network.remove()
             result = docker_to_dict(network)
+            network.remove()
+            result = {**result, "status": "removed"}
 
         elif name == "list_volumes":
             args = ListVolumesInput(**arguments)
@@ -463,8 +474,9 @@ async def call_tool(
         elif name == "remove_volume":
             args = RemoveVolumeInput(**arguments)
             volume = _docker.volumes.get(args.volume_name)
-            volume.remove(force=args.force)
             result = docker_to_dict(volume)
+            volume.remove(force=args.force)
+            result = {**result, "status": "removed"}
 
         else:
             return [types.TextContent(type="text", text=f"Unknown tool: {name}")]
