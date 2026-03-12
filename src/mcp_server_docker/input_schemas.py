@@ -4,6 +4,7 @@ from typing import Any, Literal, get_args, get_origin
 
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     ValidationInfo,
     computed_field,
@@ -21,6 +22,8 @@ class JSONParsingModel(BaseModel):
     Claude appears to not understand that a nested field shouldn't be a JSON-encoded string...
     But it does send valid JSON!
     """
+
+    model_config = ConfigDict(extra="ignore")
 
     @field_validator("*", mode="before")
     @classmethod

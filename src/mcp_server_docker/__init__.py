@@ -11,7 +11,7 @@ def main():
     """Run the server sourcing configuration from environment variables."""
     settings = ServerSettings()
     logging.basicConfig(
-        level=getattr(logging, settings.log_level.upper(), logging.WARNING),
+        level=getattr(logging, settings.log_level, logging.WARNING),
         format="%(levelname)s: %(message)s",
     )
     asyncio.run(run_stdio(settings, docker.from_env()))
