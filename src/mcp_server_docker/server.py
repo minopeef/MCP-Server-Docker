@@ -194,23 +194,23 @@ The following are guidelines for you to follow when interacting with Docker Tool
 
 @app.list_resources()
 async def list_resources() -> list[types.Resource]:
-    resources = []
+    resources: list[types.Resource] = []
     for container in _docker.containers.list():
-        resources.extend(
-            [
-                types.Resource(
-                    uri=AnyUrl(f"docker://containers/{container.id}/logs"),
-                    name=f"Logs for {container.name}",
-                    description=f"Live logs for container {container.name}",
-                    mimeType="text/plain",
-                ),
-                types.Resource(
-                    uri=AnyUrl(f"docker://containers/{container.id}/stats"),
-                    name=f"Stats for {container.name}",
-                    description=f"Live resource usage stats for container {container.name}",
-                    mimeType="application/json",
-                ),
-            ]
+        resources.append(
+            types.Resource(
+                uri=AnyUrl(f"docker://containers/{container.id}/logs"),
+                name=f"Logs for {container.name}",
+                description=f"Live logs for container {container.name}",
+                mimeType="text/plain",
+            )
+        )
+        resources.append(
+            types.Resource(
+                uri=AnyUrl(f"docker://containers/{container.id}/stats"),
+                name=f"Stats for {container.name}",
+                description=f"Live resource usage stats for container {container.name}",
+                mimeType="application/json",
+            )
         )
     return resources
 
@@ -401,7 +401,7 @@ async def call_tool(
         elif name == "fetch_container_logs":
             args = FetchContainerLogsInput(**arguments)
             container = _docker.containers.get(args.container_id)
-            logs = container.logs(tail=args.tail).decode("utf-8")
+            logs = container.logs(tail=args.tail).decode("utf-8", errors="replace")
             result = {"logs": logs.split("\n")}
 
         elif name == "list_images":
