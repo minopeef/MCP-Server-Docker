@@ -1,6 +1,6 @@
 {
   "$schema": "https://glama.ai/mcp/schemas/server.json",
-  "maintainers": [
-    "ckreiling"
-  ]
+  "name": "mcp-server-docker",
+  "description": "MCP server for managing Docker with natural language",
+  "maintainers": ["ckreiling"]
 }

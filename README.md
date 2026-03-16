@@ -111,6 +111,8 @@ The server implements a couple resources for every container:
 
 ## Tools
 
+List tools accept optional filters (e.g. by label). Container and image list tools support an `all` flag to include stopped or intermediate resources.
+
 ### Containers
 
 - `list_containers`
@@ -162,6 +164,11 @@ For safety reasons, this MCP server does not support sensitive Docker options li
 
 This server uses the Python Docker SDK's `from_env` method. For configuration details, see the Docker Python client documentation.
 
+Optional environment variables (prefix `MCP_SERVER_`):
+
+- `MCP_SERVER_LOG_LEVEL` – Logging level: DEBUG, INFO, WARNING, or ERROR (default: WARNING)
+- Settings are also loaded from a `.env` file in the working directory if present.
+
 ### Connect to Docker over SSH
 
 This MCP server can connect to a remote Docker daemon over SSH.
@@ -186,7 +193,19 @@ Simply set a `ssh://` host URL in the MCP server definition:
 
 Prefer using Devbox to configure your development environment.
 
-See the `devbox.json` for helpful development commands.
+Install dev dependencies (e.g. for linting with ruff):
+
+```bash
+uv sync --extra dev
+```
+
+See `devbox.json` for development scripts:
+
+- `devbox run python-lint` – Run ruff on the source tree
+- `devbox run mcp-run` – Run the MCP server locally
+- `devbox run mcp-inspector` – Run the MCP inspector
+- `devbox run prettier-format` – Format JSON and Markdown
+- `devbox run pyproject-check` – Validate pyproject.toml
 
 After setting up devbox you can configure your Claude MCP config to use it:
 
