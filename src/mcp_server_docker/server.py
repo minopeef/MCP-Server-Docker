@@ -38,6 +38,13 @@ _docker: docker.DockerClient
 _server_settings: ServerSettings
 
 
+def _normalized_filters(filters: Any) -> dict[str, Any] | None:
+    """Normalize optional Pydantic filter models for Docker SDK calls."""
+    if filters is None:
+        return None
+    return filters.model_dump(exclude_none=True)
+
+
 @app.list_prompts()
 async def list_prompts() -> list[types.Prompt]:
     return [
@@ -354,8 +361,7 @@ async def call_tool(
         if name == "list_containers":
             args = ListContainersInput(**arguments)
             dump = args.model_dump()
-            if dump.get("filters") is not None:
-                dump["filters"] = args.filters.model_dump(exclude_none=True)
+            dump["filters"] = _normalized_filters(args.filters)
             containers = _docker.containers.list(**dump)
             result = [docker_to_dict(c) for c in containers]
 
@@ -395,8 +401,9 @@ async def call_tool(
         elif name == "remove_container":
             args = RemoveContainerInput(**arguments)
             container = _docker.containers.get(args.container_id)
+            result = docker_to_dict(container)
             container.remove(force=args.force)
-            result = docker_to_dict(container, {"status": "removed"})
+            result = {**result, "status": "removed"}
 
         elif name == "fetch_container_logs":
             args = FetchContainerLogsInput(**arguments)
@@ -407,8 +414,7 @@ async def call_tool(
         elif name == "list_images":
             args = ListImagesInput(**arguments)
             dump = args.model_dump()
-            if dump.get("filters") is not None:
-                dump["filters"] = args.filters.model_dump(exclude_none=True)
+            dump["filters"] = _normalized_filters(args.filters)
             images = _docker.images.list(**dump)
             result = [docker_to_dict(img) for img in images]
 
@@ -443,8 +449,7 @@ async def call_tool(
         elif name == "list_networks":
             args = ListNetworksInput(**arguments)
             dump = args.model_dump()
-            if dump.get("filters") is not None:
-                dump["filters"] = args.filters.model_dump(exclude_none=True)
+            dump["filters"] = _normalized_filters(args.filters)
             networks = _docker.networks.list(**dump)
             result = [docker_to_dict(net) for net in networks]
 
@@ -462,7 +467,7 @@ async def call_tool(
 
         elif name == "list_volumes":
             args = ListVolumesInput(**arguments)
-            filters = args.filters.model_dump(exclude_none=True) if args.filters else None
+            filters = _normalized_filters(args.filters)
             volumes = _docker.volumes.list(filters=filters)
             result = [docker_to_dict(v) for v in volumes]
 
@@ -495,7 +500,7 @@ async def call_tool(
         await app.request_context.session.send_log_message(
             "error", traceback.format_exc()
         )
-        raise e
+        raise
 
     return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
 
